@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SplitTab — Tip Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0d;
+      --surface:   #161616;
+      --surface2:  #1e1e1e;
+      --border:    #2a2a2a;
+      --accent:    #c8f55a;
+      --accent2:   #5af5c8;
+      --danger:    #ff5a5a;
+      --text:      #f0f0f0;
+      --muted:     #666;
+      --radius:    12px;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Syne', sans-serif;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--accent);
+    }
+
+    .logo span { color: var(--text); }
+
+    .tagline {
+      font-size: 0.75rem;
+      font-family: var(--mono);
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── MAIN GRID ── */
+    .app {
+      width: 100%;
+      max-width: 860px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 620px) {
+      .app { grid-template-columns: 1fr; }
+    }
+
+    /* ── PANELS ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+    }
+
+    .panel-title {
+      font-size: 0.65rem;
+      font-family: var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── FORM FIELDS ── */
+    .field { margin-bottom: 1.4rem; }
+
+    .field:last-of-type { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.45rem;
+      letter-spacing: 0.02em;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .prefix, .suffix {
+      position: absolute;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--muted);
+      pointer-events: none;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .prefix { left: 0.9rem; }
+    .suffix { right: 0.9rem; }
+
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1rem;
+      padding: 0.65rem 0.9rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .has-prefix input { padding-left: 2.2rem; }
+    .has-suffix input { padding-right: 2.2rem; }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200,245,90,0.12);
+    }
+
+    input.error {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(255,90,90,0.12);
+    }
+
+    .error-msg {
+      font-size: 0.7rem;
+      font-family: var(--mono);
+      color: var(--danger);
+      margin-top: 0.35rem;
+      min-height: 1em;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .error-msg.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── TIP PRESETS ── */
+    .tip-presets {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      flex: 1;
+      min-width: 52px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.5rem 0.25rem;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      text-align: center;
+    }
+
+    .preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .preset-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0d0d0d;
+      font-weight: 700;
+    }
+
+    .preset-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* ── OUTPUT PANEL ── */
+    .output-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .result-row:last-of-type { border-bottom: none; }
+
+    .result-row.featured {
+      padding-top: 1.25rem;
+    }
+
+    .result-label {
+      font-size: 0.7rem;
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .result-label small {
+      display: block;
+      font-size: 0.62rem;
+      color: #444;
+      margin-top: 0.1rem;
+    }
+
+    .result-value {
+      font-family: var(--mono);
+      font-size: 1.35rem;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      transition: color 0.2s;
+    }
+
+    .result-row.featured .result-value {
+      font-size: 2.1rem;
+      font-weight: 400;
+      color: var(--accent);
+    }
+
+    .result-currency {
+      font-size: 0.75em;
+      color: var(--muted);
+      margin-right: 0.1em;
+    }
+
+    /* ── RESET BUTTON ── */
+    .reset-btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.65rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .reset-btn:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: rgba(255,90,90,0.05);
+    }
+
+    .reset-btn:focus-visible {
+      outline: 2px solid var(--danger);
+      outline-offset: 2px;
+    }
+
+    /* ── ROUNDING BADGE ── */
+    .rounding-note {
+      font-size: 0.62rem;
+      font-family: var(--mono);
+      color: #3a3a3a;
+      text-align: center;
+      margin-top: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── PEOPLE STEPPER ── */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .step-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.12s, color 0.12s;
+    }
+
+    .step-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .step-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .stepper input {
+      flex: 1;
+      text-align: center;
+    }
+
+    /* ── ANIMATE VALUE UPDATE ── */
+    @keyframes flash {
+      0%   { color: var(--accent2); }
+      100% { color: inherit; }
+    }
+
+    .flash { animation: flash 0.35s ease; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Split<span>Tab</span></div>
+  <div class="tagline">Bill / Tip / Split</div>
+</header>
+
+<main class="app" role="main">
+
+  <!-- ── LEFT: INPUTS ── -->
+  <section class="panel" aria-label="Calculator inputs">
+    <p class="panel-title">Enter Details</p>
+
+    <!-- Bill Amount -->
+    <div class="field">
+      <label for="bill">Bill Amount</label>
+      <div class="input-wrap has-prefix">
+        <span class="prefix" aria-hidden="true">Rs</span>
+        <input
+          type="number"
+          id="bill"
+          inputmode="decimal"
+          placeholder="0.00"
+          min="0"
+          step="0.01"
+          aria-describedby="bill-error"
+          autocomplete="off"
+        />
+      </div>
+      <div class="error-msg" id="bill-error" role="alert" aria-live="polite"></div>
+    </div>
+
+    <!-- Tip % -->
+    <div class="field">
+      <label>Tip Percentage</label>
+      <div class="tip-presets" role="group" aria-label="Tip presets">
+        <button class="preset-btn" data-tip="5"  type="button" aria-pressed="false">5%</button>
+        <button class="preset-btn" data-tip="10" type="button" aria-pressed="false">10%</button>
+        <button class="preset-btn" data-tip="15" type="button" aria-pressed="false">15%</button>
+        <button class="preset-btn" data-tip="20" type="button" aria-pressed="false">20%</button>
+        <button class="preset-btn" data-tip="25" type="button" aria-pressed="false">25%</button>
+      </div>
+      <div class="input-wrap has-suffix">
+        <input
+          type="number"
+          id="tip"
+          inputmode="decimal"
+          placeholder="Custom"
+          min="0"
+          max="100"
+          step="0.1"
+          aria-label="Custom tip percentage"
+          aria-describedby="tip-error"
+          autocomplete="off"
+        />
+        <span class="suffix" aria-hidden="true">%</span>
+      </div>
+      <div class="error-msg" id="tip-error" role="alert" aria-live="polite"></div>
+    </div>
+
+    <!-- People -->
+    <div class="field">
+      <label for="people">Number of People</label>
+      <div class="stepper">
+        <button class="step-btn" id="dec-people" type="button" aria-label="Decrease people">−</button>
+        <input
+          type="number"
+          id="people"
+          inputmode="numeric"
+          value="1"
+          min="1"
+          max="999"
+          step="1"
+          aria-describedby="people-error"
+          autocomplete="off"
+        />
+        <button class="step-btn" id="inc-people" type="button" aria-label="Increase people">+</button>
+      </div>
+      <div class="error-msg" id="people-error" role="alert" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ── RIGHT: OUTPUT ── -->
+  <section class="output-panel" aria-label="Calculation results" aria-live="polite">
+    <p class="panel-title">Results</p>
+
+    <div class="result-row">
+      <div class="result-label">Tip Amount</div>
+      <div class="result-value" id="out-tip"><span class="result-currency">Rs</span><span id="v-tip">0.00</span></div>
+    </div>
+
+    <div class="result-row">
+      <div class="result-label">Grand Total<small>Bill + Tip</small></div>
+      <div class="result-value" id="out-total"><span class="result-currency">Rs</span><span id="v-total">0.00</span></div>
+    </div>
+
+    <div class="result-row featured">
+      <div class="result-label">Per Person<small id="people-label">÷ 1 person</small></div>
+      <div class="result-value" id="out-person"><span class="result-currency">Rs</span><span id="v-person">0.00</span></div>
+    </div>
+
+    <button class="reset-btn" id="reset-btn" type="button" aria-label="Reset all fields">↺ Reset</button>
+    <p class="rounding-note">Per-person amounts rounded up to nearest paisa (ceiling)</p>
+  </section>
+
+</main>
+
+<script>
+  // ── ELEMENTS ──
+  const billInput   = document.getElementById('bill');
+  const tipInput    = document.getElementById('tip');
+  const peopleInput = document.getElementById('people');
+  const presetBtns  = document.querySelectorAll('.preset-btn');
+  const resetBtn    = document.getElementById('reset-btn');
+  const decBtn      = document.getElementById('dec-people');
+  const incBtn      = document.getElementById('inc-people');
+
+  const vTip    = document.getElementById('v-tip');
+  const vTotal  = document.getElementById('v-total');
+  const vPerson = document.getElementById('v-person');
+  const peopleLabel = document.getElementById('people-label');
+
+  const billErr   = document.getElementById('bill-error');
+  const tipErr    = document.getElementById('tip-error');
+  const peopleErr = document.getElementById('people-error');
+
+  // ── STATE ──
+  let activePreset = null;
+
+  // ── VALIDATION ──
+  function validateBill(val) {
+    if (val === '' || val === null) return 'Enter a bill amount.';
+    const n = parseFloat(val);
+    if (isNaN(n))       return 'Must be a valid number.';
+    if (n < 0)          return 'Bill cannot be negative.';
+    if (n === 0)        return null; // allow 0 (empty table scenario)
+    if (n > 10_000_000) return 'That's a big bill — max Rs 10,000,000.';
+    return null;
+  }
+
+  function validateTip(val) {
+    if (val === '' || val === null) return 'Enter a tip % (0 for no tip).';
+    const n = parseFloat(val);
+    if (isNaN(n))  return 'Must be a valid number.';
+    if (n < 0)     return 'Tip % cannot be negative.';
+    if (n > 100)   return 'Tip % cannot exceed 100%.';
+    return null;
+  }
+
+  function validatePeople(val) {
+    if (val === '' || val === null) return 'Enter number of people.';
+    const n = Number(val);
+    if (!Number.isInteger(n) || isNaN(n)) return 'Must be a whole number.';
+    if (n < 1)    return 'At least 1 person required.';
+    if (n > 999)  return 'Max 999 people supported.';
+    return null;
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg || '';
+    if (msg) {
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  }
+
+  function markInput(input, hasError) {
+    if (hasError) {
+      input.classList.add('error');
+      input.setAttribute('aria-invalid', 'true');
+    } else {
+      input.classList.remove('error');
+      input.setAttribute('aria-invalid', 'false');
+    }
+  }
+
+  // ── ROUNDING: ceiling to 2 dp (group never underpays) ──
+  function ceilTo2(n) {
+    return Math.ceil(n * 100) / 100;
+  }
+
+  function fmt(n) {
+    return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // ── FLASH ANIMATION ──
+  function flashEl(el) {
+    el.classList.remove('flash');
+    void el.offsetWidth; // reflow
+    el.classList.add('flash');
+  }
+
+  // ── CALCULATE ──
+  function calculate() {
+    const billVal   = billInput.value.trim();
+    const tipVal    = tipInput.value.trim();
+    const peopleVal = peopleInput.value.trim();
+
+    const bErr = validateBill(billVal);
+    const tErr = validateTip(tipVal);
+    const pErr = validatePeople(peopleVal);
+
+    showError(billErr, bErr);
+    showError(tipErr, tErr);
+    showError(peopleErr, pErr);
+
+    markInput(billInput, !!bErr);
+    markInput(tipInput, !!tErr);
+    markInput(peopleInput, !!pErr);
+
+    if (bErr || tErr || pErr) {
+      // Only clear output if bill or tip invalid
+      if (bErr || tErr) {
+        setOutputs(null, null, null, null);
+      }
+      return;
+    }
+
+    const bill   = parseFloat(billVal) || 0;
+    const tipPct = parseFloat(tipVal)  || 0;
+    const people = parseInt(peopleVal, 10);
+
+    const tip   = bill * (tipPct / 100);
+    const total = bill + tip;
+    const perPerson = ceilTo2(total / people);
+
+    setOutputs(tip, total, perPerson, people);
+  }
+
+  function setOutputs(tip, total, perPerson, people) {
+    const tipStr    = tip    !== null ? fmt(tip)    : '—';
+    const totalStr  = total  !== null ? fmt(total)  : '—';
+    const perStr    = perPerson !== null ? fmt(perPerson) : '—';
+
+    if (vTip.textContent !== tipStr) {
+      vTip.textContent = tipStr;
+      flashEl(vTip);
+    }
+    if (vTotal.textContent !== totalStr) {
+      vTotal.textContent = totalStr;
+      flashEl(vTotal);
+    }
+    if (vPerson.textContent !== perStr) {
+      vPerson.textContent = perStr;
+      flashEl(vPerson);
+    }
+
+    if (people !== null) {
+      peopleLabel.textContent = `÷ ${people} ${people === 1 ? 'person' : 'people'}`;
+    } else {
+      peopleLabel.textContent = '';
+    }
+  }
+
+  // ── PRESET BUTTONS ──
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.tip;
+
+      if (activePreset === btn) {
+        // Toggle off
+        btn.classList.remove('active');
+        btn.setAttribute('aria-pressed', 'false');
+        activePreset = null;
+        tipInput.value = '';
+      } else {
+        presetBtns.forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
+        btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
+        activePreset = btn;
+        tipInput.value = val;
+      }
+      calculate();
+    });
+  });
+
+  // Typing in tip input clears preset
+  tipInput.addEventListener('input', () => {
+    presetBtns.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    activePreset = null;
+    calculate();
+  });
+
+  // ── STEPPER BUTTONS ──
+  decBtn.addEventListener('click', () => {
+    const cur = parseInt(peopleInput.value, 10) || 1;
+    if (cur > 1) {
+      peopleInput.value = cur - 1;
+      calculate();
+    }
+  });
+
+  incBtn.addEventListener('click', () => {
+    const cur = parseInt(peopleInput.value, 10) || 0;
+    if (cur < 999) {
+      peopleInput.value = cur + 1;
+      calculate();
+    }
+  });
+
+  // ── LIVE INPUT LISTENERS ──
+  billInput.addEventListener('input', calculate);
+  peopleInput.addEventListener('input', calculate);
+
+  // Prevent non-numeric paste on people
+  peopleInput.addEventListener('paste', e => {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    if (!/^\d+$/.test(pasted.trim())) e.preventDefault();
+  });
+
+  // Enter on bill moves to tip
+  billInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') tipInput.focus();
+  });
+
+  // Enter on tip moves to people
+  tipInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') peopleInput.focus();
+  });
+
+  // ── RESET ──
+  function reset() {
+    billInput.value   = '';
+    tipInput.value    = '';
+    peopleInput.value = '1';
+
+    presetBtns.forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-pressed', 'false');
+    });
+    activePreset = null;
+
+    showError(billErr, null);
+    showError(tipErr, null);
+    showError(peopleErr, null);
+    markInput(billInput, false);
+    markInput(tipInput, false);
+    markInput(peopleInput, false);
+
+    setOutputs(0, 0, 0, 1);
+    vTip.textContent    = '0.00';
+    vTotal.textContent  = '0.00';
+    vPerson.textContent = '0.00';
+    peopleLabel.textContent = '÷ 1 person';
+
+    billInput.focus();
+  }
+
+  resetBtn.addEventListener('click', reset);
+
+  // ── INITIAL STATE ──
+  tipInput.value = '15';
+  presetBtns[2].classList.add('active'); // 15% default
+  presetBtns[2].setAttribute('aria-pressed', 'true');
+  activePreset = presetBtns[2];
+  calculate();
+</script>
+</body>
+</html>
